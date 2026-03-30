@@ -3,6 +3,7 @@ using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace ImageUploadApi.Controllers
 {
@@ -11,6 +12,8 @@ namespace ImageUploadApi.Controllers
     public class UploadController : ControllerBase
     {
         private readonly IConfiguration _configuration;
+        private const string _containerName = "images";
+        private const string _connectionString = "Connectionstring-blobStorage";
 
         public UploadController(IConfiguration configuration)
         {
@@ -18,7 +21,7 @@ namespace ImageUploadApi.Controllers
         }
 
         [HttpPost("image")]
-        [Authorize] // Only authenticated users can access
+        //[Authorize] // Only authenticated users can access
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -27,19 +30,30 @@ namespace ImageUploadApi.Controllers
             try
             {
                 // Get Key Vault details from configuration
-                string keyVaultUrl = _configuration["KeyVault:Url"];
-                string secretName = _configuration["KeyVault:BlobConnectionSecretName"];
+                string? keyVaultUrl = _configuration["KeyVault:Url"];
+                string? userManagedIdentityClientId = _configuration["KeyVault:ClientId"];
 
-                // Authenticate with Managed Identity
-                var client = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+                if (string.IsNullOrEmpty(keyVaultUrl))
+                {
+                    throw new ArgumentNullException(nameof(keyVaultUrl), "KeyVaultUri is missing in configuration.");
+                }
 
-                // Retrieve Blob connection string from Key Vault
-                KeyVaultSecret secret = await client.GetSecretAsync(secretName);
+                // Set up credentials using the Managed Identity Client ID if provided
+                var credentialOptions = new DefaultAzureCredentialOptions();
+                if (!string.IsNullOrEmpty(userManagedIdentityClientId))
+                {
+                    credentialOptions.ManagedIdentityClientId = userManagedIdentityClientId;
+                }
+                var credentials = new DefaultAzureCredential(credentialOptions);
+
+                // Connect to Azure Key Vault and retrieve the connection string secret
+                var secretClient = new SecretClient(new Uri(keyVaultUrl), credentials);
+                KeyVaultSecret secret = (await secretClient.GetSecretAsync(_connectionString)).Value;
                 string blobConnectionString = secret.Value;
 
                 // Connect to Blob Storage
                 var blobServiceClient = new BlobServiceClient(blobConnectionString);
-                var containerClient = blobServiceClient.GetBlobContainerClient("images");
+                var containerClient = blobServiceClient.GetBlobContainerClient(_containerName);
 
                 // Ensure container exists
                 await containerClient.CreateIfNotExistsAsync();
