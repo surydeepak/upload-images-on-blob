@@ -1,0 +1,64 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "ImageUploadApi",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/Upload/image": {
+      "post": {
+        "tags": [
+          "Upload"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://login.microsoftonline.com/27397bf2-c83f-43db-bb65-183994d67028/oauth2/v2.0/authorize",
+            "tokenUrl": "https://login.microsoftonline.com/27397bf2-c83f-43db-bb65-183994d67028/oauth2/v2.0/token",
+            "scopes": {
+              "api://654ac416-5012-46b6-a72c-9654b6d7e591/user_impersonation": "Access API as user"
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "oauth2": [
+        "api://654ac416-5012-46b6-a72c-9654b6d7e591/user_impersonation"
+      ]
+    }
+  ]
+}
