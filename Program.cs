@@ -75,7 +75,6 @@ if (app.Environment.IsDevelopment())
         c.OAuthScopeSeparator(" ");
     });
 }
-//app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -9,6 +9,7 @@ namespace ImageUploadApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UploadController : ControllerBase
     {
         private readonly IConfiguration _configuration;
