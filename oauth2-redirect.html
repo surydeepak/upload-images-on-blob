@@ -1,0 +1,24 @@
+﻿
+<!doctype html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>Swagger UI OAuth2 Redirect</title>
+</head>
+<body>
+    <script>
+      'use strict';
+      function receiveMessage(e) {
+        var oauth2 = window.opener.swaggerUIRedirectOauth2;
+        var sentState = oauth2.state;
+        var redirectUrl = oauth2.redirectUrl;
+
+        var qp = e.data;
+        oauth2.callback({ auth: qp, state: sentState });
+        window.close();
+      }
+      window.addEventListener('message', receiveMessage, false);
+      window.opener.postMessage(location.search.substring(1), redirectUrl);
+    </script>
+</body>
+</html>
