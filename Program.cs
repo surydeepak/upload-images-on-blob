@@ -51,29 +51,29 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer(options =>
-    {
-        options.Authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
-        options.Audience = $"api://{clientId}";
-    });
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.     
-
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    // IMPORTANT: Use /swagger/v1/swagger.json, not /swagger.json
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Image Upload API v1");
     
     // OAuth2 setup for Swagger UI
     c.OAuthClientId(clientId);
     c.OAuthUsePkce(); // Use Authorization Code flow with PKCE
-    c.OAuthScopeSeparator(" ");
-    // Optional: Make Swagger the default page at the root URL
+    c.OAuthScopes(scopeUrl);
+    c.OAuthAdditionalQueryStringParams(new Dictionary<string, string> 
+    { 
+        {"resource", $"api://{clientId}"} 
+    });
+    
+    // Force Swagger to be at exactly the root URL
     c.RoutePrefix = string.Empty;
+    
+    // Explicitly configure the correct absolute callback path for Azure AD OAuth2
+    c.OAuth2RedirectUrl("https://upload-image-api.azurewebsites.net/oauth2-redirect.html");
 });
 
 app.UseHttpsRedirection();

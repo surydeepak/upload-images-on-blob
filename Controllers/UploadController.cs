@@ -8,8 +8,7 @@ using Microsoft.Extensions.Configuration;
 namespace ImageUploadApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
+    [Route("api/[controller]")]   
     public class UploadController : ControllerBase
     {
         private readonly IConfiguration _configuration;
@@ -22,7 +21,7 @@ namespace ImageUploadApi.Controllers
         }
 
         [HttpPost("image")]
-        //[Authorize] // Only authenticated users can access
+        [Authorize] // Only authenticated users can access
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
             if (file == null || file.Length == 0)
