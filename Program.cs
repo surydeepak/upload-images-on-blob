@@ -1,35 +1,31 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 // Add this using directive
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Read configurations
-var tenantId = builder.Configuration["AzureAd:TenantId"];
-var clientId = builder.Configuration["AzureAd:ClientId"];
-var scopeName = builder.Configuration["AzureAd:Scopes"];
-var scopeUrl = $"api://{clientId}/{scopeName}";
-
-
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddControllers();
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
     {
         Type = SecuritySchemeType.OAuth2,
+        Name = "Authorization",
+        Scheme = "Bearer",
         Flows = new OpenApiOAuthFlows
         {
-            AuthorizationCode = new OpenApiOAuthFlow
+            Implicit = new OpenApiOAuthFlow
             {
-                // Replace YOUR_TENANT_ID with your actual tenant ID
-                AuthorizationUrl = new Uri($"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/authorize"),
-                TokenUrl = new Uri($"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token"),
+                AuthorizationUrl = new Uri($"https://login.microsoftonline.com/{builder.Configuration["AzureAd:TenantId"]}/oauth2/v2.0/authorize"),
+                TokenUrl = new Uri($"https://login.microsoftonline.com/{builder.Configuration["AzureAd:TenantId"]}/oauth2/v2.0/token"),
                 Scopes = new Dictionary<string, string>
                 {
-                    // Replace YOUR_API_CLIENT_ID with your actual client ID
-                    { scopeUrl, "Access API as user" }
+                    { $"api://{builder.Configuration["AzureAd:ClientId"]}/{builder.Configuration["AzureAd:Scopes"]}", "Access API" }
                 }
             }
         }
@@ -43,10 +39,10 @@ builder.Services.AddSwaggerGen(c =>
                 Reference = new OpenApiReference
                 {
                     Type = ReferenceType.SecurityScheme,
-                    Id = "oauth2"
+                    Id = "Bearer"
                 }
             },
-            new[] { scopeUrl }
+            Array.Empty<string>()        
         }
     });
 });
@@ -56,24 +52,12 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.     
 app.UseSwagger();
+
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Image Upload API v1");
-    
-    // OAuth2 setup for Swagger UI
-    c.OAuthClientId(clientId);
-    c.OAuthUsePkce(); // Use Authorization Code flow with PKCE
-    c.OAuthScopes(scopeUrl);
-    c.OAuthAdditionalQueryStringParams(new Dictionary<string, string> 
-    { 
-        {"resource", $"api://{clientId}"} 
-    });
-    
-    // Force Swagger to be at exactly the root URL
-    c.RoutePrefix = string.Empty;
-    
-    // Explicitly configure the correct absolute callback path for Azure AD OAuth2
-    c.OAuth2RedirectUrl("https://upload-image-api.azurewebsites.net/oauth2-redirect.html");
+    c.OAuthClientId(builder.Configuration["AzureAd:ClientId"]);
+    c.OAuthUsePkce();
 });
 
 app.UseHttpsRedirection();
@@ -82,5 +66,3 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
-
-
